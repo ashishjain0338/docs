@@ -1,19 +1,21 @@
 # Helm to Operator Codegen Sdk
-The "Helm to Operator Codegen Sdk" takes the helm chart as input and generates the golang-code which can be used by kubernetes operator to create/delete all the resources previously managed by the helm charts. The sdk can be employed to transition from helm-way-of-deploying-resources to the operator way.
+The "Helm to Operator Codegen SDK" offers a streamlined solution for translating existing Helm charts into Kubernetes operators with minimal effort and cost.
 
-Note: It is currently an experimental feature.
+By utilizing the Helm to Operator Codegen SDK, users can efficiently convert existing Helm charts into Kubernetes operators. This transition enables users to leverage the advanced capabilities provided by Kubernetes operators, such as enhanced automation, lifecycle management, and custom logic handling. Overall, the SDK facilitates a smooth migration process, empowering users to embrace the operator model for managing their Kubernetes resources effectively.
 
+## Excercise: Deploying Free5gc using operator
 ### Step 0: Prerequisite
 1. GoLang Version: 1.21
 2. Helm : v3.9.3
-3. Go Packages:
+3. Kubebuilder
+4. Go Packages:
 ```
 # Clone the Repo
 cd nephio-sdk/helm-to-operator-codegen-sdk/
 go mod tidy
 ```
 
-### Step 1: Running the sdk
+### Step 1: Convert the helm-chart to Go-Code using Helm-to-operator-codegen-sdk
 ```
 go run main.go <path_to_local_helm_chart> <namespace> <logging-level>
 ```
@@ -71,6 +73,4 @@ The Generated Go-Code shall contain the following plugable functions:
     1. Get_Service(): Shall return the list of all services.
     2. Get_Deployment(): Shall return the list of all deployments. & so on
 
-Further Docs:
-1. Design Document: [link](https://docs.google.com/document/d/1b7WpK_BHe7nRuGP5MOy6Mxf3hpN_cro9/edit)
-2. Detailed Algorithm: [link](https://1drv.ms/p/s!AkgeY1fT2A5UhQK4IWBxOJ6YUerh?e=BmBkRc)
+### Step 2: Using kubebuilder to develop the operator
