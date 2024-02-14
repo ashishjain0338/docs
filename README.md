@@ -109,6 +109,9 @@ We have assumed in the DFS function, that every path (structure) will end at the
 
 </details>
 
+<details>
+<summary>JSON Conversion Example</summary>
+
 ```
 // For A KRM Resource
 apiVersion: v1
@@ -154,10 +157,38 @@ spec:
 }
 // It shows the hierarchical structure along with the specific data types and corresponding values for each attribute
 ```
+</details>
 
 ### Flow-3.3: JSON to String (Go-Code)
 The SDK reads the JSON file containing the information about the Kubernetes resource and then translates this information into a string of Go code. This process involves parsing the JSON structure and generating corresponding Go code strings based on the structure, data types, and values extracted from the JSON representation. Ultimately, this results in a string that represents the Kubernetes resource in a format compatible with Go code.
 
-### Flow-4
+### Flow-4: KRM to Unstruct-Obj to String(Go-code)
+All Kubernetes resource kinds that are not supported by the runtime-object method are handled using the unstructured method. In this approach, the Kubernetes Resource Manifest (KRM) is converted to an unstructured object using the package "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured". 
+Then, We traverse the unstructured-Obj in a DFS fashion and builds the gocode-string.
+<details>
+<summary>DFS Algorithm Cases (Unstruct-Version)</summary>
 
+
+```	
+A) Base Cases:
+1. Bool: Convert the Bool value to string and return.
+2. Int & Float: Convert the value to string and return.
+3. String: if SingleLine, then return the string with enclosed quotes i.e. \”mystring\”,
+	If MultiLine, then it handled using Concatenated Line strings, (as done previously in Flow 3.3).
+
+B) Composite Cases:
+1. Slice/Array: Iterate over each element, runs the DFS(element), captures the backtrackVal & return as:
+	[]interface{}{
+		“backtrackVal1”,
+		“backtrackVal2”,
+	}
+2. Map: Iterate over each key-value pair, runs the DFS(value), capture the backtrackVal & returns as:
+	map[string]interface{}{
+		“key1”: “backtrackVal1”,
+		“key2”: “backtrackVal2”,	
+	}
+
+```
+
+</details>
 
