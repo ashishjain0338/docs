@@ -10,6 +10,13 @@ After the conversion process, all the generated Go code is gathered and compiled
 
 ![alt Flow Diagram](https://github.com/ashishjain0338/docs/blob/main/Helm-To-Operator-Codegen-SDK.jpg)
 
+-----
+### Flow-1: Helm to Yaml
+Helm to Yaml conversion is achieved by running the command
+`helm template <chart>  --namespace <namespace>  --output-dir “temp/templated/”` Internally. As of now, It retrieves the values from default "values.yaml"
+
+### Flow-2: Yaml Split
+The SDK iterates over each YAML file in the "converted-yamls" directory. If a YAML file contains multiple Kubernetes Resource Manifests (KRM), separated by "---", the SDK splits the YAML file accordingly to isolate each individual KRM resource. This ensures that each KRM resource is processed independently.
 
 
 
