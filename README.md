@@ -61,6 +61,59 @@ networkAttachmentDefinition1 := &unstructured.Unstructured{
 	}
 ```
 
+### Flow-3.1: KRM to Runtime-Object
+The conversion process relies on the "k8s.io/apimachinery/pkg/runtime" package. Currently, only the API version "v1" is supported. The supported kinds for the Runtime Object method include:
+`Deployment, Service, Secret, Role, RoleBinding, ClusterRoleBinding, PersistentVolumeClaim, StatefulSet, ServiceAccount, ClusterRole, PriorityClass, ConfigMap`
+
+### Flow-3.2: Runtime-Object to JSON
+Firstly, the SDK performs a typecast of the runtime object to its actual data type. For instance, if the Kubernetes Kind is "Service," the SDK typecasts the runtime object to the specific data type corev1.Service. Then, it conducts a Depth-First Search (DFS) traversal over the corev1.Service object using reflection. During this traversal, the SDK generates a JSON structure that encapsulates information about the struct hierarchy, including corresponding data types and values. This transformation results in a JSON representation of the corev1.Service object's structure and content.
+
+```
+// For A KRM Resource
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  ports:
+    - protocol: TCP
+      port: 80
+
+// The Converted JSON Representation looks-like the following: 
+{
+    "ObjectMeta": {
+        "type": "v1.ObjectMeta",
+        "val": {
+            "Name": {
+                "type": "string",
+                "val": "my-service"
+            }
+        }
+    },
+    "Spec": {
+        "type": "v1.ServiceSpec",
+        "val": {
+            "Ports": {
+                "type": "[]v1.ServicePort",
+                "val": [
+                    {
+                        "Port": {
+                            "type": "int32",
+                            "val": "80"
+                        },
+                        "Protocol": {
+                            "type": "v1.Protocol",
+                            "val": "TCP"
+                        }
+                    }
+                ]
+            }
+        }
+    }
+}
+// It shows the hierarchical structure along with the specific data types and corresponding values for each attribute
+```
+
 
 
 
