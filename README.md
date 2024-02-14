@@ -19,8 +19,47 @@ Helm to Yaml conversion is achieved by running the command
 The SDK iterates over each YAML file in the "converted-yamls" directory. If a YAML file contains multiple Kubernetes Resource Manifests (KRM), separated by "---", the SDK splits the YAML file accordingly to isolate each individual KRM resource. This ensures that each KRM resource is processed independently.
 
 ### Runtime-Object and Unstruct-Object
-The SDK currently employs the "runtime-object method" to handle Kubernetes resources whose structure is recognized by Kubernetes by default. Examples of such resources include Deployment, Service, and ConfigMap. Conversely, resources that are not inherently known to Kubernetes and require explicit installation or definition, such as Third-Party Custom Resource Definitions (CRDs) like NetworkAttachmentDefinition or PrometheusRule, are processed using the "unstructured-object" method.
+The SDK currently employs the "runtime-object method" to handle Kubernetes resources whose structure is recognized by Kubernetes by default. Examples of such resources include Deployment, Service, and ConfigMap. Conversely, resources that are not inherently known to Kubernetes and require explicit installation or definition, such as Third-Party Custom Resource Definitions (CRDs) like NetworkAttachmentDefinition or PrometheusRule, are processed using the "unstructured-object" method. Such examples are given below:
+```
+// Runtime-Object Example
+service1 := &corev1.Service{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "v1",
+			Kind:       "Service",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "my-service",
+		},
+		Spec: corev1.ServiceSpec{
+			Selector: map[string]string{
+				"app.kubernetes.io/name": "MyApp",
+			},
+			Ports: []corev1.ServicePort{
+				corev1.ServicePort{
+					Port:     80,
+					Protocol: corev1.Protocol("TCP"),
+					TargetPort: intstr.IntOrString{
+						IntVal: 9376,
+					},
+				},
+			},
+		},
+	}
 
+// Unstruct-Object Example
+networkAttachmentDefinition1 := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "k8s.cni.cncf.io/v1",
+			"kind":       "NetworkAttachmentDefinition",
+			"metadata": map[string]interface{}{
+				"name": "macvlan-conf",
+			},
+			"spec": map[string]interface{}{
+				"config": "some-config",
+			},
+		},
+	}
+```
 
 
 
