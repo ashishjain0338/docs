@@ -20,6 +20,10 @@ The SDK iterates over each YAML file in the "converted-yamls" directory. If a YA
 
 ### Runtime-Object and Unstruct-Object
 The SDK currently employs the "runtime-object method" to handle Kubernetes resources whose structure is recognized by Kubernetes by default. Examples of such resources include Deployment, Service, and ConfigMap. Conversely, resources that are not inherently known to Kubernetes and require explicit installation or definition, such as Third-Party Custom Resource Definitions (CRDs) like NetworkAttachmentDefinition or PrometheusRule, are processed using the "unstructured-object" method. Such examples are given below:
+
+<details>
+<summary>Example</summary>
+
 ```
 // Runtime-Object Example
 service1 := &corev1.Service{
@@ -60,6 +64,7 @@ networkAttachmentDefinition1 := &unstructured.Unstructured{
 		},
 	}
 ```
+</details>
 
 ### Flow-3.1: KRM to Runtime-Object
 The conversion process relies on the "k8s.io/apimachinery/pkg/runtime" package. Currently, only the API version "v1" is supported. The supported kinds for the Runtime Object method include:
@@ -67,6 +72,42 @@ The conversion process relies on the "k8s.io/apimachinery/pkg/runtime" package. 
 
 ### Flow-3.2: Runtime-Object to JSON
 Firstly, the SDK performs a typecast of the runtime object to its actual data type. For instance, if the Kubernetes Kind is "Service," the SDK typecasts the runtime object to the specific data type corev1.Service. Then, it conducts a Depth-First Search (DFS) traversal over the corev1.Service object using reflection. During this traversal, the SDK generates a JSON structure that encapsulates information about the struct hierarchy, including corresponding data types and values. This transformation results in a JSON representation of the corev1.Service object's structure and content.
+<details>
+<summary>DFS Algorithm Cases</summary>
+
+The DFS function iterates over the runtime object, traversing its structure in a Depth-First Search manner. During this traversal, it constructs the JSON structure while inspecting each attribute for its data type and value. Attributes that have default values in the runtime object but are not explicitly set in the YAML file are omitted from the conversion process. This ensures that only explicitly defined attributes with their corresponding values are included in the resulting JSON structure. The function follows this flow to accurately capture the structure, data types, and values of the Kubernetes resource while excluding default attributes that are not explicitly configured in the YAML file.
+
+```	
+A) Base-Cases:
+1. Float32, Float64, Int8, Int16, Int32, Int64
+ 	Typecast the Float, Int value to String and returns. (0 is considered as default value)
+2. Bool
+	Returns the bool value as it is. 
+3. String
+	Replaces (“ with \”) and (\ with \\) and returns. (“” is considered as default value) 
+
+B) Composite-Cases:
+1. Slice/ Array:
+	Iterates over each element of slice and calls the DFS fxn again with the element.
+	Returns the list of all backtrack-values. ([] is considered as default value)
+2. Map
+	Iterates over each key-value pairs, calls the DFS(value).
+	Returns the map containing key-backtrack_values. (Empty Map is considered as default value).
+3. Struct
+	Iterates over each attribute-value and calls the DFS(value).
+	Returns map[Attribute-Name] = {“type” : “Data-type of Attribute”, “val”: “Backtracked-Value of 	Attribute”}.
+
+C) Special-Cases:
+We have assumed in the DFS function, that every path (structure) will end at the basic-data-types (string, int, bool etc), But there lies some cases when we can’t traverse further because the attributes of struct are private. Such cases are handled specially. (Converted to String and then return appropriately)
+1. V1.Time and resource.Quantity
+2. []byte/[]uint8: []byte is generally used in kind: Secret. It is seen that we provide 64base encoded secret-value in yaml, but on converting the yaml to runtime-obj, the secret-val automatically get decoded to actual value, Since, It is not good to show decoded/actual secret value in the code, therefore, we decode it again and store this decoded-value as secret-value in json.
+
+
+
+		
+```
+
+</details>
 
 ```
 // For A KRM Resource
@@ -114,6 +155,9 @@ spec:
 // It shows the hierarchical structure along with the specific data types and corresponding values for each attribute
 ```
 
+### Flow-3.3: JSON to String (Go-Code)
+The SDK reads the JSON file containing the information about the Kubernetes resource and then translates this information into a string of Go code. This process involves parsing the JSON structure and generating corresponding Go code strings based on the structure, data types, and values extracted from the JSON representation. Ultimately, this results in a string that represents the Kubernetes resource in a format compatible with Go code.
 
+### Flow-4
 
 
