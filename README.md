@@ -162,9 +162,132 @@ spec:
 ### Flow-3.3: JSON to String (Go-Code)
 The SDK reads the JSON file containing the information about the Kubernetes resource and then translates this information into a string of Go code. This process involves parsing the JSON structure and generating corresponding Go code strings based on the structure, data types, and values extracted from the JSON representation. Ultimately, this results in a string that represents the Kubernetes resource in a format compatible with Go code.
 
+<details>
+<summary>TraverseJSON Cases (Json-to-String)</summary>
+
+
+```
+The traverse JSON function is responsible for converting JSON data into Go code. Here's how it handles base cases:
+The JSON structure contains type as well as value information. Based on the type the following case are formulated.
+A) Base Cases:
+1. Bool: Returns the boolean value as a string.
+2. String: if SingleLine, then return the string with enclosed quotes i.e. \”mystring\”,
+	   If MultiLine, then it is handled using Concatenated Line strings.
+	Line-1       ---> "Line-1\n" + 
+	Line-2        	  "Line-2\n"	
+
+
+B) Composite Cases:
+1. Slice/Array: Iterate over each element, run the TraverseJson(element), capture the backtrackVal & format it accordingly using FormatTypeVal(backtrack-Val):
+		“Formatted-backtrackVal1”,
+		“Formatted-backtrackVal2”,
+
+2. Map: Iterate over each key-value pair, run the TraverseJson(value), capture the backtrackVal & format it accordingly using FormatTypeVal(backtrack-Val):
+	map[string]string{}{
+		“key1”: “Formatted-backtrackVal1”,
+		“key2”: “Formatted-backtrackVal2”,	
+	}
+
+3. : Any Data-type Other Than Map (Signifies it is a Struct with attributes)
+	Iterate over each attribute value, run the TraverseJson(attribute-value), capture the backtrackVal & format it accordingly using FormatTypeVal(backtrack-Val)
+	Attribute-Name1: “Formatted-backtrackVal1”,
+	Attribute-Name2: “Formatted-backtrackVal2”,
+
+```
+
+</details>
+
+
+
+<details>
+<summary>GoCode Conversion Example</summary>
+
+```
+// For a JSON structure Like the following: 
+{
+    "ObjectMeta": {
+        "type": "v1.ObjectMeta",
+        "val": {
+            "Name": {
+                "type": "string",
+                "val": "my-service"
+            }
+        }
+    },
+    "Spec": {
+        "type": "v1.ServiceSpec",
+        "val": {
+            "Ports": {
+                "type": "[]v1.ServicePort",
+                "val": [
+                    {
+                        "Port": {
+                            "type": "int32",
+                            "val": "80"
+                        },
+                        "Protocol": {
+                            "type": "v1.Protocol",
+                            "val": "TCP"
+                        }
+                    }
+                ]
+            }
+        }
+    }
+}
+
+// The Go-code will look like as
+ &corev1.Service{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: "my-service",
+	},
+	
+	Spec: corev1.ServiceSpec{
+		Ports: []corev1.ServicePort{
+	
+			corev1.ServicePort{
+				Port:     80,
+				Protocol: corev1.Protocol("TCP"),
+				TargetPort: intstr.IntOrString{
+					IntVal: 9376,
+				},
+			},
+		},
+	},
+}
+```
+</details>
+
+### Significance of Config-Jsons: (Struct_Module_mapping.json & Enum_module_mapping.json)
+Based on the data type, Values are formatted accordingly,
+| Data-Type | Value    | Formatted-Value    |
+| :---:   | :---: | :---: |
+| int32 | 5   | 5   |
+| string | 5   | \"5\" |
+| *int32 | 5   | int32Ptr(5) |
+
+The Config-Jsons are required for more package-specific-types (such as : v1.Service, v1.Deployment)
+
+#### i) Struct_Module_mapping.json
+Mostly, It is seen that inspecting the type of struct(using reflect) would tell us that the struct belong to package “v1”, but there are multiple v1 packages (appsv1, metav1, rbacv1, etc), So, the actual package remains unknown. 
+
+Solution: To solve the above problems, we build a “structModuleMapping” which is a map that takes “struct-name” as the key and gives “package/module name” as a value.
+```
+v1.Deployment -->  appsv1.Deployment
+v1.Service --> corev1.Service
+```
+
+#### ii) Enum_Module_mapping.json
+Structs need to be initialized using curly brackets {}, whereas enums need Parenthesis (), Since, reflect doesn’t tell us which data-type is struct or enum, We:
+
+Solution: We solve the above problems by building an “enumModuleMapping” which is a set that stores all data types that are enums. i.e. If a data type belongs to the set, then It is an Enum.
+
+There is an automation-script that takes the types.go files of packages and build the config-json. For details, Please refer [here](https://github.com/nephio-project/nephio-sdk/tree/main/helm-to-operator-codegen-sdk/config)
+
+
 ### Flow-4: KRM to Unstruct-Obj to String(Go-code)
 All Kubernetes resource kinds that are not supported by the runtime-object method are handled using the unstructured method. In this approach, the Kubernetes Resource Manifest (KRM) is converted to an unstructured object using the package "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured". 
-Then, We traverse the unstructured-Obj in a DFS fashion and builds the gocode-string.
+Then, We traverse the unstructured-Obj in a DFS fashion and build the gocode-string.
 <details>
 <summary>DFS Algorithm Cases (Unstruct-Version)</summary>
 
